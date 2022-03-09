@@ -1,0 +1,54 @@
+orgs:
+  kingdom-tower:
+    name: kingdom-tower
+    admins:
+    - cpanato
+    - jespino
+    - mgdelacroix
+    default_repository_permission: read
+    description: ""
+    has_organization_projects: true
+    has_repository_projects: true
+    location: ""
+    members:
+      - cpanatoBOT
+    members_can_create_repositories: true
+    repos:
+      kingdom:
+        has_projects: false
+        has_wiki: false
+      playground:
+        default_branch: main
+        has_projects: false
+        has_wiki: false
+    teams:
+      A Team with space:
+        description: super cool team
+        maintainers:
+        - cpanato
+        privacy: closed
+        repos:
+          playground: triage
+      My team 2:
+        description: super cool team
+        maintainers:
+        - cpanato
+        members:
+        privacy: closed
+        repos:
+          playground: read
+      mytestingteam:
+        description: just to test
+        members:
+        privacy: closed
+      team-b:
+        description: super cool team
+        maintainers:
+        - cpanato
+        members:
+        privacy: closed
+        repos:
+          playground: write
+      team-c:
+        description: another super cool team
+        privacy: closed
