@@ -27,6 +27,10 @@ orgs:
       testing:
         default_branch: main
         has_projects: true
+      playground-2:
+        default_branch: main
+        has_projects: false
+        has_wiki: false
     teams:
       A Team with space:
         description: super cool team
