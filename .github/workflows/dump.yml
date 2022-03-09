@@ -17,4 +17,4 @@ jobs:
         uses: docker://docker.io/ctadeu/peribolos:test
         with:
           github-token-path: ./token
-          dump: kingdom-tower
+          dump-config: kingdom-tower
