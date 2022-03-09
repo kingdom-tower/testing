@@ -1,6 +1,7 @@
 orgs:
   kingdom-tower:
     name: kingdom-tower
+    email: ""
     admins:
     - cpanato
     - jespino
