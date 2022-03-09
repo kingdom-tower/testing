@@ -1,6 +1,7 @@
 name: periobolos-apply
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
