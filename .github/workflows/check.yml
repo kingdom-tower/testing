@@ -6,9 +6,6 @@ on:
       - main
   pull_request:
 
-env:
-  GO_VERSION: 1.17.x
-
 jobs:
   check-config:
     if: github.event_name == 'pull_request'
