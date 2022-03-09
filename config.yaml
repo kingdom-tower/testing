@@ -1,19 +1,21 @@
 orgs:
   kingdom-tower:
-    name: kingdom-tower
-    email: ""
     admins:
     - cpanato
     - jespino
     - mgdelacroix
+    billing_email: ctadeu@gmail.com
+    company: ""
     default_repository_permission: read
     description: ""
+    email: ""
     has_organization_projects: true
     has_repository_projects: true
     location: ""
     members:
-      - cpanatoBOT
+    - cpanatoBOT
     members_can_create_repositories: true
+    name: kingdom-tower
     repos:
       kingdom:
         has_projects: false
@@ -22,6 +24,9 @@ orgs:
         default_branch: main
         has_projects: false
         has_wiki: false
+      testing:
+        default_branch: main
+        has_projects: true
     teams:
       A Team with space:
         description: super cool team
@@ -34,19 +39,16 @@ orgs:
         description: super cool team
         maintainers:
         - cpanato
-        members:
         privacy: closed
         repos:
           playground: read
       mytestingteam:
         description: just to test
-        members:
         privacy: closed
       team-b:
         description: super cool team
         maintainers:
         - cpanato
-        members:
         privacy: closed
         repos:
           playground: write
