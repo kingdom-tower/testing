@@ -15,4 +15,4 @@ jobs:
         uses: docker://docker.io/ctadeu/peribolos:test
         with:
           github-token-path: ./token
-          dump: "${{ env.GITHUB_REPOSITORY_OWNER }}"
+          dump-config: kingdom-tower
