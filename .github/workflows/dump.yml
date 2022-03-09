@@ -3,6 +3,8 @@ name: periobolos-dump
 on:
   workflow_dispatch:
 
+permissions: read-all
+
 jobs:
   dump-config:
     name: dump-config
