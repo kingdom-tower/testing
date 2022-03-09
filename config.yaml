@@ -44,6 +44,10 @@ orgs:
           playground: read
       mytestingteam:
         description: just to test
+        maintainers:
+        - cpanato
+        members:
+        - cpanatoBOT
         privacy: closed
       team-b:
         description: super cool team
