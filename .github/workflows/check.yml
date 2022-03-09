@@ -19,7 +19,5 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
       - name: Peribolos
-        uses: docker://docker.io/ctadeu/peribolos:test
+        uses: docker://docker.io/ctadeu/peribolos:test --help
 
-      - name: test
-        run: peribolos 
