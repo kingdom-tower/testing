@@ -24,6 +24,10 @@ jobs:
           github-token-path: ./token
           fix-org: true
           fix-org-members: true
+          fix-repos: true
+          fix-team-repos: true
+          fix-teams: true
+          fix-teams-members: true
           min-admins: 2
 
   apply-config:
@@ -42,4 +46,8 @@ jobs:
           confirm: true
           fix-org: true
           fix-org-members: true
+          fix-repos: true
+          fix-team-repos: true
+          fix-teams: true
+          fix-teams-members: true
           min-admins: 2
