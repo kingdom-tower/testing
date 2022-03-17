@@ -14,7 +14,8 @@ jobs:
       - name: set token
         run: echo ${{ secrets.PAT_TOKEN }} > token
       - name: Peribolos
-        uses: docker://ghcr.io/relengfam/peribolos:latest
+        # uses: docker://ghcr.io/relengfam/peribolos:latest
+        uses: docker://ctadeu/peribolos:latest
         with:
           github-token-path: ./token
           dump: kingdom-tower
