@@ -6,7 +6,7 @@ on:
       - main
     types:
       - opened # probably the only one you need
-
+      - reopened
 jobs:
   review:
     runs-on: ubuntu-latest
