@@ -1,24 +1,36 @@
 name: Review
 
 on:
-  # schedule:
-  #   - cron: '30 */2 * * *' # every 2 hours
-  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
 
 jobs:
   review:
     runs-on: ubuntu-latest
 
-    permissions:
-      pull-requests: write
-      contents: write
-      checks: write
+    # permissions:
+    #   pull-requests: write
+    #   contents: read
 
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-      - run: |
-          set -euo pipefail
-          ./.github/scripts/review-pull-request.sh ${{ github.repository }}
-        shell: bash
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # - run: |
+      #     set -euo pipefail
+      #     ./.github/scripts/review-pull-request.sh ${{ github.repository }}
+      #   shell: bash
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/github-script@v4
+        with:
+          script: |
+            const result = await github.pulls.createReview({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            pull_number: context.issue.number,
+            event: "APPROVE"
+            })
+            console.log(result.status)
