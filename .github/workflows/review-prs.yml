@@ -25,10 +25,10 @@ jobs:
       - env:
           GITHUB_CONTEXT: ${{ toJSON(github) }}
         run: echo "$GITHUB_CONTEXT"
-      - run: echo "${{ github.context.user.login }}"
+      - run: echo "${{ github.context.pull_requests.number }}"
+      - run: echo "${{ github.context.workflow_run.actor.login }}"
 
       - uses: actions/github-script@v4
-        if: ${{ github.context.user.login == 'cpanato' }}
         with:
           script: |
             const result = await github.pulls.createReview({
