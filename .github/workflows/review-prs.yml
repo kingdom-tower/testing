@@ -25,8 +25,8 @@ jobs:
       - env:
           GITHUB_CONTEXT: ${{ toJSON(github) }}
         run: echo "$GITHUB_CONTEXT"
-      - run: echo "${{ github.context.pull_requests.number }}"
-      - run: echo "${{ github.context.workflow_run.actor.login }}"
+      - run: echo "${{ github.pull_requests.number }}"
+      - run: echo "${{ github.workflow_run.actor.login }}"
 
       - uses: actions/github-script@v4
         with:
