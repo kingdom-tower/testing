@@ -13,5 +13,14 @@ get_prs() {
 readarray -t PRS < <(get_prs)
 for pr in "${PRS[@]}"; do
   echo ">>> Reviewing PR: ${pr}"
-  gh pr review --approve --body="automated review" --repo=wolfi-dev/advisories "${pr}"
+#   gh pr review --approve --body="automated review" --repo=wolfi-dev/advisories "${pr}"
+
+    # Approve PR
+   curl \
+    -o review_output.json \
+    -X POST \
+    -H "Accept: application/vnd.github+json" \
+    -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+    https://api.github.com/repos/"${1}"/pulls/"${pr}"/reviews
+
 done
