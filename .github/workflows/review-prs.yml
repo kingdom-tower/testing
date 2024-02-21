@@ -1,10 +1,11 @@
 name: Review
 
 on:
-  workflow_run:
-    workflows: ["periobolos-check"]
+  pull_request:
+    branches:
+      - main
     types:
-      - completed
+      - opened # probably the only one you need
 
 jobs:
   review:
@@ -22,13 +23,9 @@ jobs:
       #   shell: bash
       #   env:
       #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - env:
-          GITHUB_CONTEXT: ${{ toJSON(github) }}
-        run: echo "$GITHUB_CONTEXT"
-      - run: echo "${{ github.pull_requests.number }}"
-      - run: echo "${{ github.workflow_run.actor.login }}"
 
       - uses: actions/github-script@v4
+        if: ${{ github.actor == 'cpanato' }}
         with:
           script: |
             const result = await github.pulls.createReview({
