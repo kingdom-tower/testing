@@ -2,9 +2,9 @@ name: periobolos-apply
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
+  # push:
+  #   branches:
+  #     - main
 
 permissions: read-all
 

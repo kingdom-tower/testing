@@ -2,6 +2,11 @@ name: periobolos-check
 
 on:
   pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - gh-readonly-queue/main/**
 
 permissions: read-all
 
