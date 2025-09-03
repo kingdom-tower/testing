@@ -26,3 +26,8 @@ approval_rules:
       changed_files:
         paths:
           - "^iac/.*$"
+
+options:
+  request_review:
+    enabled: true
+    mode: teams
