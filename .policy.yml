@@ -1,9 +1,28 @@
 policy:
   approval:
-    - one approval from palantir
+    - one approval from kingdom-tower
+    - iac changed
+  disapproval:
+    requires:
+      organizations:
+        - "kingdom-tower"
 
 approval_rules:
-  - name: one approval from palantir
+  - name: one approval from kingdom-tower
     requires:
       count: 1
       organizations: ["kingdom-tower"]
+    if:
+      changed_files:
+        paths:
+          - "^test-folder/.*$"
+
+  - name: iac changed
+    requires:
+      count: 1
+      teams:
+        - "kingdom-tower/x-wing"
+    if:
+      changed_files:
+        paths:
+          - "^iac/.*$"
