@@ -2,6 +2,7 @@ policy:
   approval:
     - one approval from kingdom-tower
     - iac changed
+    - gh worfkflows
   disapproval:
     requires:
       organizations:
@@ -28,6 +29,20 @@ approval_rules:
       changed_files:
         paths:
           - "^iac/.*$"
+    options:
+      request_review:
+        enabled: true
+        mode: teams
+
+  - name: gh worfkflows
+    requires:
+      count: 1
+      teams:
+        - "kingdom-tower/x-wing"
+    if:
+      changed_files:
+        paths:
+          - "^.github/.*$"
     options:
       request_review:
         enabled: true
