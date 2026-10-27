@@ -1,0 +1,37 @@
+name: Replace mutable chart assets e2e
+on:
+  push:
+    branches: [codex/chart-releaser-replace-e2e]
+permissions:
+  contents: write
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        pages: ['false', 'true']
+    env:
+      GH_TOKEN: ${{ github.token }}
+      CR_TOKEN: ${{ github.token }}
+      PAGES: ${{ matrix.pages }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: cpanato/chart-releaser
+          ref: 95c87e5038e301b6e572085e3fabfb4094dd3188
+          path: .e2e/cli
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.27'
+          cache-dependency-path: .e2e/cli/go.sum
+      - name: Build chart-releaser
+        working-directory: .e2e/cli
+        run: go build -o /tmp/cr ./cr
+      - name: Test signed and unsigned replacement with matching index
+        shell: bash
+        run: bash test-replacement.sh
