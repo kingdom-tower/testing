@@ -1,4 +1,4 @@
-name: Chart releaser v1.9.0 pre-release e2e
+name: Chart releaser v1.9.0 release e2e
 
 on:
   push:
@@ -17,7 +17,7 @@ jobs:
         image: registry:2
         ports: [5000:5000]
     env:
-      CLI_SOURCE_SHA: 1b43878125bffa089a5c6a7717e9678b1cfae01c
+      CLI_RELEASE_SHA: 1b43878125bffa089a5c6a7717e9678b1cfae01c
       GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -25,33 +25,27 @@ jobs:
           fetch-depth: 0
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: helm/chart-releaser
-          ref: ${{ env.CLI_SOURCE_SHA }}
-          path: .e2e/cli
-          persist-credentials: false
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
           repository: cpanato/chart-releaser-action
           ref: de4404428afc09778fc49f6960d123871fea600c
           path: .e2e/action
           persist-credentials: false
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: .e2e/cli/go.mod
-          cache-dependency-path: .e2e/cli/go.sum
-      - name: Build pinned pre-release CLI into the v1.9.0 tool cache
-        working-directory: .e2e/cli
-        shell: bash
-        run: |
-          set -euo pipefail
-          install_dir="$RUNNER_TOOL_CACHE/cr/v1.9.0/$(uname -m)"
-          mkdir -p "$install_dir"
-          go build -ldflags "-X github.com/helm/chart-releaser/cr/cmd.Version=v1.9.0-dev -X github.com/helm/chart-releaser/cr/cmd.GitCommit=$CLI_SOURCE_SHA" -o "$install_dir/cr" ./cr
-          "$install_dir/cr" version
       - name: Verify installation using the new default
         uses: ./.e2e/action
         with:
           install_only: true
+      - name: Verify official release checksum and installed binary
+        shell: bash
+        run: |
+          set -euo pipefail
+          cr version --json | jq -e --arg sha "$CLI_RELEASE_SHA" '.Version == "v1.9.0" and .GitCommit == $sha'
+          release_dir="$RUNNER_TEMP/cr-v1.9.0-release"
+          gh release download v1.9.0 --repo helm/chart-releaser --pattern chart-releaser_1.9.0_linux_amd64.tar.gz --pattern checksums.txt --dir "$release_dir"
+          (
+            cd "$release_dir"
+            grep '  chart-releaser_1.9.0_linux_amd64.tar.gz$' checksums.txt | sha256sum --check -
+          )
+          tar -xzf "$release_dir/chart-releaser_1.9.0_linux_amd64.tar.gz" -C "$release_dir"
+          cmp "$(command -v cr)" "$release_dir/cr"
       - name: Prepare isolated publishing branch and chart versions
         shell: bash
         run: |
@@ -85,7 +79,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cr version --json | jq -e --arg sha "$CLI_SOURCE_SHA" '.Version == "v1.9.0-dev" and .GitCommit == $sha'
+          cr version --json | jq -e --arg sha "$CLI_RELEASE_SHA" '.Version == "v1.9.0" and .GitCommit == $sha'
           test "$CHANGED_CHARTS" = 'charts/cr-v190-alpha,charts/cr-v190-beta'
           git fetch origin "$PAGES_BRANCH:refs/remotes/origin/$PAGES_BRANCH"
           git show "origin/$PAGES_BRANCH:index.yaml" > "$RUNNER_TEMP/e2e-index.yaml"
@@ -102,10 +96,10 @@ jobs:
             curl -fsS -H 'Accept: application/vnd.oci.image.manifest.v1+json' "http://localhost:5000/v2/cr-v1.9/$chart/manifests/$CHART_VERSION" | jq -e '.schemaVersion == 2 and .config.mediaType == "application/vnd.cncf.helm.config.v1+json"'
           done
           {
-            echo 'Validated with upstream source, not official v1.9.0 release artifacts.'
-            echo "CLI source: $CLI_SOURCE_SHA"
+            echo 'Validated with the official v1.9.0 Linux amd64 release artifact.'
+            echo "CLI release commit: $CLI_RELEASE_SHA"
             echo 'Action source: de4404428afc09778fc49f6960d123871fea600c'
             echo "Chart version: $CHART_VERSION"
             echo "Index branch: $PAGES_BRANCH"
-            echo 'Passed: install-only, two-chart packaging, release assets, branch packages, index digests, OCI tags/manifests, changed_charts output.'
+            echo 'Passed: release download/checksum, installed binary comparison, install-only, two-chart packaging, release assets, branch packages, index digests, OCI tags/manifests, changed_charts output.'
           } >> "$GITHUB_STEP_SUMMARY"
