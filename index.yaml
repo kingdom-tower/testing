@@ -1,0 +1,21 @@
+apiVersion: v1
+entries:
+  explicit-generated-40542243961:
+  - apiVersion: v2
+    created: "2026-10-27T16:34:47.213153463Z"
+    description: Explicit selection e2e
+    digest: 1cbccb79f473914060f7891ba2987095dcfbda82b9e504aca076358740759342
+    name: explicit-generated-40542243961
+    urls:
+    - https://github.com/kingdom-tower/testing/releases/download/explicit-generated-40542243961-0.1.0/explicit-generated-40542243961-0.1.0.tgz
+    version: 0.1.0
+  explicit-selected-40542243961:
+  - apiVersion: v2
+    created: "2026-10-27T16:34:47.425088522Z"
+    description: Explicit selection e2e
+    digest: daadf749365e46e1a3b6ef705080422264e3e8b3d334a3ecd4275cd2bc080684
+    name: explicit-selected-40542243961
+    urls:
+    - https://github.com/kingdom-tower/testing/releases/download/explicit-selected-40542243961-0.1.0/explicit-selected-40542243961-0.1.0.tgz
+    version: 0.1.0
+generated: "2026-10-27T16:34:47.425092878Z"
