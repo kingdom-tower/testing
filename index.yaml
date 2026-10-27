@@ -2,9 +2,9 @@ apiVersion: v1
 entries:
   replace-true-40543301252:
   - apiVersion: v2
-    created: "2026-10-27T16:42:34.731493681Z"
-    description: replacement-signed
-    digest: 9a47bfe5436eea2827d84386e6ceee73135f2462c2b1cb0a9f2225e79a9b841c
+    created: "2026-10-27T16:42:43.792377928Z"
+    description: replacement-unsigned
+    digest: 108b1cd5022300654b8485fc9d59614c50af34bbff8ceb413f5c6b6be7cad178
     name: replace-true-40543301252
     urls:
     - replace-true-40543301252-0.1.0+build.1.tgz
@@ -17,4 +17,4 @@ entries:
     urls:
     - replace-true-40543301252-0.0.9.tgz
     version: 0.0.9
-generated: "2026-10-27T16:42:34.731503015Z"
+generated: "2026-10-27T16:42:43.792387061Z"
