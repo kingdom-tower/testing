@@ -1,0 +1,5 @@
+.e2e/
+generated/
+.cr-*
+*_charts.txt
+chart_version.txt

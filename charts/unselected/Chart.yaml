@@ -1,0 +1,4 @@
+apiVersion: v2
+name: explicit-unselected-40542243961
+version: 0.1.0
+description: Explicit selection e2e
