@@ -1,0 +1,152 @@
+name: Chart releaser custom index paths
+
+on:
+  push:
+    branches: [codex/chart-releaser-index-paths-e2e]
+
+permissions: {}
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: docs-static
+            packages: 'false'
+            config_file: cr.yaml
+            local_index: .custom-index/site/static/index.yaml
+            pages_index: docs/static/index.yaml
+            baseline_index: .custom-index/site/static/index.yaml
+          - name: packages-custom
+            packages: 'true'
+            config_file: cr.yaml
+            local_index: .custom-index/site/static/index.yaml
+            pages_index: index.yaml
+            baseline_index: index.yaml
+          - name: packages-default
+            packages: 'true'
+            config_file: ''
+            local_index: .cr-index/index.yaml
+            pages_index: index.yaml
+            baseline_index: index.yaml
+    env:
+      CASE_NAME: ${{ matrix.name }}
+      CONFIG_FILE: ${{ matrix.config_file }}
+      LOCAL_INDEX: ${{ matrix.local_index }}
+      PAGES_INDEX: ${{ matrix.pages_index }}
+      BASELINE_INDEX: ${{ matrix.baseline_index }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: cpanato/chart-releaser-action
+          ref: 35f01dceb8491f4c7a79da15f7ca805ff9a4e6dd
+          path: .e2e/action
+          persist-credentials: false
+      - name: Prepare configuration and isolated documentation branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'chart-releaser e2e'
+          git config user.email 'chart-releaser-e2e@users.noreply.github.com'
+          pages_branch="e2e/index-paths-$GITHUB_RUN_ID-$CASE_NAME"
+          pages_worktree="$RUNNER_TEMP/pages-$CASE_NAME"
+          git worktree add --detach "$pages_worktree" HEAD
+          git -C "$pages_worktree" switch --orphan "$pages_branch"
+          printf 'Preserve existing site content\n' > "$pages_worktree/site-marker.txt"
+          git -C "$pages_worktree" add site-marker.txt
+          git -C "$pages_worktree" commit -m 'Seed isolated documentation branch'
+          git -C "$pages_worktree" push origin "$pages_branch"
+          git worktree remove "$pages_worktree"
+          git fetch origin "$pages_branch:refs/remotes/origin/$pages_branch"
+          echo "PAGES_BRANCH=$pages_branch" >> "$GITHUB_ENV"
+          baseline_version="0.1.0-$GITHUB_RUN_ID.$CASE_NAME.baseline"
+          echo "BASELINE_VERSION=$baseline_version" >> "$GITHUB_ENV"
+          sed -i "s/^version:.*/version: $baseline_version/" charts/cr-index-paths/Chart.yaml
+          if [[ -n "$CONFIG_FILE" ]]; then
+            printf 'index-path: %s\npages-index-path: %s\n' "$LOCAL_INDEX" "$PAGES_INDEX" > "$CONFIG_FILE"
+          fi
+      - name: Publish using the released action
+        id: baseline
+        uses: helm/chart-releaser-action@v1.8.0
+        with:
+          config: ${{ matrix.config_file }}
+          packages_with_index: ${{ matrix.packages }}
+          pages_branch: ${{ env.PAGES_BRANCH }}
+          mark_as_latest: false
+        env:
+          CR_TOKEN: ${{ github.token }}
+      - name: Verify current behavior and prepare a distinct new version
+        env:
+          CHANGED_CHARTS: ${{ steps.baseline.outputs.changed_charts }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$CHANGED_CHARTS" = charts/cr-index-paths
+          test -f "$BASELINE_INDEX"
+          grep -F "$BASELINE_VERSION" "$BASELINE_INDEX"
+          if [[ "$BASELINE_INDEX" != "$LOCAL_INDEX" ]]; then
+            test ! -f "$LOCAL_INDEX"
+            digest=$(sha256sum index.yaml | cut -d ' ' -f 1)
+            echo "ROOT_INDEX_DIGEST_BEFORE=$digest" >> "$GITHUB_ENV"
+            echo "Reproduced v1.8.0 override: $LOCAL_INDEX was not generated; index.yaml was used instead." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          fixed_version="0.1.0-$GITHUB_RUN_ID.$CASE_NAME.fixed"
+          echo "FIXED_VERSION=$fixed_version" >> "$GITHUB_ENV"
+          sed -i "s/^version:.*/version: $fixed_version/" charts/cr-index-paths/Chart.yaml
+      - name: Publish using the index-path fix
+        id: fixed
+        uses: ./.e2e/action
+        with:
+          config: ${{ matrix.config_file }}
+          packages_with_index: ${{ matrix.packages }}
+          pages_branch: ${{ env.PAGES_BRANCH }}
+          mark_as_latest: false
+        env:
+          CR_TOKEN: ${{ github.token }}
+      - name: Verify local and published indexes and package URLs
+        env:
+          CHANGED_CHARTS: ${{ steps.fixed.outputs.changed_charts }}
+          PACKAGES_WITH_INDEX: ${{ matrix.packages }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$CHANGED_CHARTS" = charts/cr-index-paths
+          test -f "$LOCAL_INDEX"
+          grep -F "$BASELINE_VERSION" "$LOCAL_INDEX"
+          grep -F "$FIXED_VERSION" "$LOCAL_INDEX"
+          if [[ -n "${ROOT_INDEX_DIGEST_BEFORE:-}" ]]; then
+            test "$(sha256sum index.yaml | cut -d ' ' -f 1)" = "$ROOT_INDEX_DIGEST_BEFORE"
+          fi
+          git fetch origin "$PAGES_BRANCH:refs/remotes/origin/$PAGES_BRANCH"
+          git show "origin/$PAGES_BRANCH:site-marker.txt" | grep -F 'Preserve existing site content'
+          git show "origin/$PAGES_BRANCH:$PAGES_INDEX" > "$RUNNER_TEMP/published-index.yaml"
+          cmp "$LOCAL_INDEX" "$RUNNER_TEMP/published-index.yaml"
+          if [[ "$PAGES_INDEX" != index.yaml ]]; then
+            if git cat-file -e "origin/$PAGES_BRANCH:index.yaml"; then
+              echo 'Unexpected index at branch root' >&2
+              exit 1
+            fi
+          fi
+          for version in "$BASELINE_VERSION" "$FIXED_VERSION"; do
+            package="cr-index-paths-$version.tgz"
+            gh release download "cr-index-paths-$version" --repo "$GITHUB_REPOSITORY" --pattern "$package" --dir "$RUNNER_TEMP/assets"
+            digest=$(sha256sum "$RUNNER_TEMP/assets/$package" | cut -d ' ' -f 1)
+            grep -F "$digest" "$LOCAL_INDEX"
+            if [[ "$PACKAGES_WITH_INDEX" == true ]]; then
+              git show "origin/$PAGES_BRANCH:$package" > "$RUNNER_TEMP/$package"
+              cmp "$RUNNER_TEMP/assets/$package" "$RUNNER_TEMP/$package"
+              grep -F -- "- $package" "$LOCAL_INDEX"
+            else
+              grep -F "https://github.com/$GITHUB_REPOSITORY/releases/download/cr-index-paths-$version/$package" "$LOCAL_INDEX"
+            fi
+          done
+          echo "Passed $CASE_NAME: local index, custom publishing branch/path, preserved site content, release assets, package URLs, and changed_charts." >> "$GITHUB_STEP_SUMMARY"
