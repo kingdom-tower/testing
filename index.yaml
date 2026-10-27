@@ -2,9 +2,9 @@ apiVersion: v1
 entries:
   replace-false-40543301252:
   - apiVersion: v2
-    created: "2026-10-27T16:42:22.513824304Z"
-    description: original
-    digest: f6781b7dacc6475342bb4db67a0a46d46bf36b5266f403955ef3ae01c6fb1152
+    created: "2026-10-27T16:42:33.658341723Z"
+    description: replacement-signed
+    digest: 5c7e279a2831de2bc23881f701168e4051d98d1e69db19cddbd3d45b9471a072
     name: replace-false-40543301252
     urls:
     - https://github.com/kingdom-tower/testing/releases/download/replace-false-40543301252-0.1.0+build.1/replace-false-40543301252-0.1.0+build.1.tgz
@@ -17,4 +17,4 @@ entries:
     urls:
     - https://github.com/kingdom-tower/testing/releases/download/replace-false-40543301252-0.0.9/replace-false-40543301252-0.0.9.tgz
     version: 0.0.9
-generated: "2026-10-27T16:42:22.513834299Z"
+generated: "2026-10-27T16:42:33.658349875Z"
