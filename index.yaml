@@ -2,6 +2,15 @@ apiVersion: v1
 entries:
   cr-index-paths:
   - apiVersion: v2
+    created: "2026-10-27T14:56:35.113436906Z"
+    description: Custom chart-releaser index-path regression fixture
+    digest: 6dfc8a28fc42c31efb8c2cb722dcb9f39f31f034711df2a7dbd7d5d2f226ba53
+    name: cr-index-paths
+    type: application
+    urls:
+    - cr-index-paths-0.1.0-40525977569.packages-custom.fixed.tgz
+    version: 0.1.0-40525977569.packages-custom.fixed
+  - apiVersion: v2
     created: "2026-10-27T14:56:29.299506942Z"
     description: Custom chart-releaser index-path regression fixture
     digest: 3b677fb23b8dec971a0f8edc69616f5be5da12c0a900fdd48454dbc95e1ad186
@@ -10,4 +19,4 @@ entries:
     urls:
     - cr-index-paths-0.1.0-40525977569.packages-custom.baseline.tgz
     version: 0.1.0-40525977569.packages-custom.baseline
-generated: "2026-10-27T14:56:29.29951114Z"
+generated: "2026-10-27T14:56:35.113445569Z"
