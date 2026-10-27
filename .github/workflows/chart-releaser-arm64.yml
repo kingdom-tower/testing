@@ -1,0 +1,28 @@
+name: Released chart-releaser action ARM64 install
+
+on:
+  push:
+    branches: [codex/chart-releaser-arm64-e2e]
+
+permissions: {}
+
+jobs:
+  install:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Install using the published action and its default CLI version
+        uses: helm/chart-releaser-action@v1.8.0
+        with:
+          install_only: true
+      - name: Verify native ARM64 binary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RUNNER_ARCH" = ARM64
+          test "$(uname -m)" = aarch64
+          cr version --json | jq -e '.Version == "v1.9.0" and .Platform == "linux/arm64"'
+          file "$(command -v cr)"
+          echo 'Published action v1.8.0 installed and executed CLI v1.9.0 natively on Linux ARM64.' >> "$GITHUB_STEP_SUMMARY"
