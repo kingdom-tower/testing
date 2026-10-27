@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: cpanato/chart-releaser-action
-          ref: 65c4410
+          ref: 65c4410cd25bc3e4f0f9e881c12de383822def5a
           path: .e2e/action
           persist-credentials: false
       - name: Prepare unchanged charts and isolated publishing branch
