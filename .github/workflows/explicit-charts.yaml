@@ -1,0 +1,122 @@
+name: Explicit chart selection e2e
+on:
+  push:
+    branches: [codex/chart-releaser-explicit-e2e]
+permissions:
+  contents: write
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      CR_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: cpanato/chart-releaser-action
+          ref: 65c4410
+          path: .e2e/action
+          persist-credentials: false
+      - name: Prepare unchanged charts and isolated publishing branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          printf '.e2e/\ngenerated/\n.cr-*\n*_charts.txt\nchart_version.txt\n' > .gitignore
+          mkdir -p charts/selected charts/unselected 'generated/with space'
+          for kind in selected unselected generated; do
+            chart_dir="charts/$kind"
+            [[ "$kind" != generated ]] || chart_dir='generated/with space'
+            printf 'apiVersion: v2\nname: explicit-%s-%s\nversion: 0.1.0\ndescription: Explicit selection e2e\n' "$kind" "$GITHUB_RUN_ID" > "$chart_dir/Chart.yaml"
+          done
+          git add .gitignore charts
+          git commit -m 'Prepare unchanged chart fixtures'
+          git tag "e2e-selection-baseline-$GITHUB_RUN_ID"
+          git commit --allow-empty -m 'No chart changes after baseline'
+          git push origin "HEAD:refs/heads/$GITHUB_REF_NAME" "refs/tags/e2e-selection-baseline-$GITHUB_RUN_ID"
+          pages_branch="e2e/explicit-$GITHUB_RUN_ID"
+          git worktree add --orphan -b "$pages_branch" /tmp/explicit-index
+          git -C /tmp/explicit-index commit --allow-empty -m 'Initialize isolated index'
+          git -C /tmp/explicit-index push origin "$pages_branch"
+          git worktree remove /tmp/explicit-index
+          git fetch origin "$pages_branch"
+          echo "PAGES_BRANCH=$pages_branch" >> "$GITHUB_ENV"
+      - name: Released action detects no changed charts
+        id: automatic
+        uses: helm/chart-releaser-action@df287104677278f869ca5480bd260358397cc3f9
+        with:
+          pages_branch: ${{ env.PAGES_BRANCH }}
+      - name: Check automatic discovery result
+        env:
+          CHANGED: ${{ steps.automatic.outputs.changed_charts }}
+        run: test -z "$CHANGED"
+      - name: Process explicit charts without changes
+        id: explicit
+        uses: ./.e2e/action
+        with:
+          charts: |
+            charts/selected
+            generated/with space
+            ./charts/selected/
+          charts_dir: unused
+          match_tags: no-matching-tags-*
+          pages_branch: ${{ env.PAGES_BRANCH }}
+      - name: Verify assets, index digests, selection and outputs
+        env:
+          CHANGED: ${{ steps.explicit.outputs.changed_charts }}
+          CHART_VERSION: ${{ steps.explicit.outputs.chart_version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$CHANGED" = 'charts/selected,generated/with space'
+          test -z "$CHART_VERSION"
+          if gh release view "explicit-unselected-$GITHUB_RUN_ID-0.1.0"; then
+            echo 'Unselected chart was released' >&2
+            exit 1
+          fi
+          git fetch origin "$PAGES_BRANCH"
+          git show "origin/$PAGES_BRANCH:index.yaml" > /tmp/explicit-index.yaml
+          for kind in selected generated; do
+            tag="explicit-$kind-$GITHUB_RUN_ID-0.1.0"
+            mkdir -p "/tmp/$tag"
+            gh release download "$tag" --dir "/tmp/$tag"
+            digest=$(sha256sum "/tmp/$tag/$tag.tgz" | cut -d ' ' -f 1)
+            grep -F "digest: $digest" /tmp/explicit-index.yaml
+            gh release view "$tag" --json assets --jq '.assets[].id' > "/tmp/$tag/assets-before"
+          done
+          test "$(grep -c '    digest:' /tmp/explicit-index.yaml)" = 2
+      - name: Existing release still fails by default
+        id: collision
+        continue-on-error: true
+        uses: ./.e2e/action
+        with:
+          charts: charts/selected
+          pages_branch: ${{ env.PAGES_BRANCH }}
+      - name: Assert collision failed
+        env:
+          OUTCOME: ${{ steps.collision.outcome }}
+        run: test "$OUTCOME" = failure
+      - name: Explicit rerun with skip_existing
+        uses: ./.e2e/action
+        with:
+          charts: |
+            charts/selected
+            generated/with space
+          skip_existing: true
+          pages_branch: ${{ env.PAGES_BRANCH }}
+      - name: Verify existing assets and index were preserved
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin "$PAGES_BRANCH"
+          git show "origin/$PAGES_BRANCH:index.yaml" > /tmp/explicit-index-after.yaml
+          cmp /tmp/explicit-index.yaml /tmp/explicit-index-after.yaml
+          for kind in selected generated; do
+            tag="explicit-$kind-$GITHUB_RUN_ID-0.1.0"
+            gh release view "$tag" --json assets --jq '.assets[].id' > "/tmp/$tag/assets-after"
+            diff -u "/tmp/$tag/assets-before" "/tmp/$tag/assets-after"
+          done
