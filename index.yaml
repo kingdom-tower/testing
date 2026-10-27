@@ -1,0 +1,23 @@
+apiVersion: v1
+entries:
+  cr-v190-alpha:
+  - apiVersion: v2
+    created: "2026-10-27T13:55:10.151593128Z"
+    description: Isolated chart-releaser v1.9.0 e2e fixture
+    digest: af2fa54cfe6b36690f4483b8ae149f5bc0fae9f8bb489008522ad15cad2c6f3f
+    name: cr-v190-alpha
+    type: application
+    urls:
+    - cr-v190-alpha-1.9.0-e2e.40516057254.tgz
+    version: 1.9.0-e2e.40516057254
+  cr-v190-beta:
+  - apiVersion: v2
+    created: "2026-10-27T13:55:10.457222439Z"
+    description: Second chart for multi-chart publishing validation
+    digest: d7c6156a61d9039ea5ca62e46ab5ab0a04a9f82af38084df89dc04b7ecb790b3
+    name: cr-v190-beta
+    type: application
+    urls:
+    - cr-v190-beta-1.9.0-e2e.40516057254.tgz
+    version: 1.9.0-e2e.40516057254
+generated: "2026-10-27T13:55:10.457228431Z"
