@@ -1,0 +1,80 @@
+name: Released chart-releaser release notes
+
+on:
+  push:
+    branches: [codex/chart-releaser-notes-e2e]
+
+permissions: {}
+
+jobs:
+  notes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      pull-requests: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      EXISTING_PR: '26'
+      BEFORE_PR: deb9dca278e92b27cbb7ce1efda2a844d8643e21
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Prepare chart tags around existing merged PR history
+        shell: bash
+        run: |
+          set -euo pipefail
+          generated_chart="cr-notes-gen-$GITHUB_RUN_ID"
+          custom_chart="cr-notes-custom-$GITHUB_RUN_ID"
+          echo "GENERATED_CHART=$generated_chart" >> "$GITHUB_ENV"
+          echo "CUSTOM_CHART=$custom_chart" >> "$GITHUB_ENV"
+          git tag "$generated_chart-0.1.0" "$BEFORE_PR"
+          git tag "$generated_chart-extra-1.0.0" HEAD
+          git push origin "refs/tags/$generated_chart-0.1.0" "refs/tags/$generated_chart-extra-1.0.0"
+          sed -i "s/^name:.*/name: $generated_chart/; s/^version:.*/version: 0.2.0/" fixtures/generated/notes-generated/Chart.yaml
+          sed -i "s/^name:.*/name: $custom_chart/; s/^version:.*/version: 0.1.0/" fixtures/custom/notes-custom/Chart.yaml
+          printf '## Chart-specific notes\n\n- Release change: [PR #%s](https://github.com/%s/pull/%s).\n' "$EXISTING_PR" "$GITHUB_REPOSITORY" "$EXISTING_PR" > fixtures/custom/notes-custom/RELEASE_NOTES.md
+      - name: Publish with GitHub-generated release notes
+        uses: helm/chart-releaser-action@v1.8.0
+        with:
+          charts_dir: fixtures/generated
+          skip_upload: true
+          mark_as_latest: false
+        env:
+          CR_TOKEN: ${{ github.token }}
+          CR_GENERATE_RELEASE_NOTES: 'true'
+      - name: Verify PR links and the previous chart tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api "repos/$GITHUB_REPOSITORY/releases/tags/$GENERATED_CHART-0.2.0" --jq .body > "$RUNNER_TEMP/generated-notes.md"
+          grep -F "https://github.com/$GITHUB_REPOSITORY/pull/$EXISTING_PR" "$RUNNER_TEMP/generated-notes.md"
+          grep -F "compare/$GENERATED_CHART-0.1.0...$GENERATED_CHART-0.2.0" "$RUNNER_TEMP/generated-notes.md"
+          if grep -F "compare/$GENERATED_CHART-extra-1.0.0" "$RUNNER_TEMP/generated-notes.md"; then
+            echo 'Release notes used another chart tag' >&2
+            exit 1
+          fi
+          gh api "repos/$GITHUB_REPOSITORY/pulls/$EXISTING_PR/files" --paginate --jq '.[].filename' > "$RUNNER_TEMP/pr-files.txt"
+          if grep -F 'fixtures/generated/' "$RUNNER_TEMP/pr-files.txt"; then
+            echo 'Expected the existing test PR to be unrelated to this chart directory' >&2
+            exit 1
+          fi
+          echo 'Verified: generated notes include real PR links and compare against the same chart tag. Also confirmed unrelated-directory PRs are not filtered out.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Publish with a chart-specific notes file
+        uses: helm/chart-releaser-action@v1.8.0
+        with:
+          charts_dir: fixtures/custom
+          skip_upload: true
+          mark_as_latest: false
+        env:
+          CR_TOKEN: ${{ github.token }}
+          CR_GENERATE_RELEASE_NOTES: 'false'
+          CR_RELEASE_NOTES_FILE: RELEASE_NOTES.md
+      - name: Verify exact chart-specific notes body
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api "repos/$GITHUB_REPOSITORY/releases/tags/$CUSTOM_CHART-0.1.0" > "$RUNNER_TEMP/custom-release.json"
+          jq -e --rawfile expected fixtures/custom/notes-custom/RELEASE_NOTES.md '.body == $expected' "$RUNNER_TEMP/custom-release.json"
+          echo 'Verified: CR_RELEASE_NOTES_FILE uses the exact per-chart Markdown body, with generated notes disabled.' >> "$GITHUB_STEP_SUMMARY"
