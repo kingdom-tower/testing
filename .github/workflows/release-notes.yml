@@ -17,6 +17,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       EXISTING_PR: '26'
       BEFORE_PR: deb9dca278e92b27cbb7ce1efda2a844d8643e21
+      BASELINE_TAG: cr-notes-gen-44-0.1.0
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -25,14 +26,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          generated_chart="cr-notes-gen-$GITHUB_RUN_ID"
+          generated_chart=cr-notes-gen-44
+          generated_version="0.2.0-$GITHUB_RUN_ID"
           custom_chart="cr-notes-custom-$GITHUB_RUN_ID"
-          echo "GENERATED_CHART=$generated_chart" >> "$GITHUB_ENV"
-          echo "CUSTOM_CHART=$custom_chart" >> "$GITHUB_ENV"
-          git tag "$generated_chart-0.1.0" "$BEFORE_PR"
-          git tag "$generated_chart-extra-1.0.0" HEAD
-          git push origin "refs/tags/$generated_chart-0.1.0" "refs/tags/$generated_chart-extra-1.0.0"
-          sed -i "s/^name:.*/name: $generated_chart/; s/^version:.*/version: 0.2.0/" fixtures/generated/notes-generated/Chart.yaml
+          {
+            echo "GENERATED_CHART=$generated_chart"
+            echo "GENERATED_VERSION=$generated_version"
+            echo "CUSTOM_CHART=$custom_chart"
+          } >> "$GITHUB_ENV"
+          test "$(git rev-parse "$BASELINE_TAG^{commit}")" = "$BEFORE_PR"
+          git tag "$generated_chart-extra-$GITHUB_RUN_ID-1.0.0" HEAD
+          git push origin "refs/tags/$generated_chart-extra-$GITHUB_RUN_ID-1.0.0"
+          sed -i "s/^name:.*/name: $generated_chart/; s/^version:.*/version: $generated_version/" fixtures/generated/notes-generated/Chart.yaml
           sed -i "s/^name:.*/name: $custom_chart/; s/^version:.*/version: 0.1.0/" fixtures/custom/notes-custom/Chart.yaml
           printf '## Chart-specific notes\n\n- Release change: [PR #%s](https://github.com/%s/pull/%s).\n' "$EXISTING_PR" "$GITHUB_REPOSITORY" "$EXISTING_PR" > fixtures/custom/notes-custom/RELEASE_NOTES.md
       - name: Publish with GitHub-generated release notes
@@ -48,10 +53,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh api "repos/$GITHUB_REPOSITORY/releases/tags/$GENERATED_CHART-0.2.0" --jq .body > "$RUNNER_TEMP/generated-notes.md"
+          gh api "repos/$GITHUB_REPOSITORY/releases/tags/$GENERATED_CHART-$GENERATED_VERSION" --jq .body > "$RUNNER_TEMP/generated-notes.md"
           grep -F "https://github.com/$GITHUB_REPOSITORY/pull/$EXISTING_PR" "$RUNNER_TEMP/generated-notes.md"
-          grep -F "compare/$GENERATED_CHART-0.1.0...$GENERATED_CHART-0.2.0" "$RUNNER_TEMP/generated-notes.md"
-          if grep -F "compare/$GENERATED_CHART-extra-1.0.0" "$RUNNER_TEMP/generated-notes.md"; then
+          grep -F "compare/$BASELINE_TAG...$GENERATED_CHART-$GENERATED_VERSION" "$RUNNER_TEMP/generated-notes.md"
+          if grep -F "compare/$GENERATED_CHART-extra-$GITHUB_RUN_ID-1.0.0" "$RUNNER_TEMP/generated-notes.md"; then
             echo 'Release notes used another chart tag' >&2
             exit 1
           fi
