@@ -1,0 +1,12 @@
+apiVersion: v1
+entries:
+  replace-true-40543301252:
+  - apiVersion: v2
+    created: "2026-10-27T16:42:14.632850496Z"
+    description: older
+    digest: b2e8f43680f26b4164474575c08e4254530c6d7d46e44fd96aa27e9f58983608
+    name: replace-true-40543301252
+    urls:
+    - replace-true-40543301252-0.0.9.tgz
+    version: 0.0.9
+generated: "2026-10-27T16:42:14.632854532Z"
