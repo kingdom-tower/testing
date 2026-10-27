@@ -1,0 +1,13 @@
+apiVersion: v1
+entries:
+  cr-index-paths:
+  - apiVersion: v2
+    created: "2026-10-27T14:58:18.449575438Z"
+    description: Custom chart-releaser index-path regression fixture
+    digest: 8595785398e739af7d883b0b3e9d155c38ebba4c4dbc3b41e4c13f0d903d74f5
+    name: cr-index-paths
+    type: application
+    urls:
+    - https://github.com/kingdom-tower/testing/releases/download/cr-index-paths-0.1.0-40525977569.docs-static.baseline/cr-index-paths-0.1.0-40525977569.docs-static.baseline.tgz
+    version: 0.1.0-40525977569.docs-static.baseline
+generated: "2026-10-27T14:58:18.44958707Z"
