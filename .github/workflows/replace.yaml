@@ -22,7 +22,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: cpanato/chart-releaser
-          ref: 95c87e5038e301b6e572085e3fabfb4094dd3188
+          ref: e50e39131244f0b8814d9c510b2bd4fb7d7e43de
           path: .e2e/cli
           persist-credentials: false
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0

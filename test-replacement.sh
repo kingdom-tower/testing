@@ -12,6 +12,7 @@ GNUPGHOME=$(mktemp -d)
 gpg --batch --passphrase '' --quick-generate-key 'Replacement e2e <e2e@example.invalid>' rsa2048 sign 1d
 gpg --batch --export-secret-keys > /tmp/secret.gpg
 gpg --batch --export > /tmp/public.gpg
+printf '\n' > /tmp/passphrase.txt
 git worktree add --orphan -b "$pages_branch" /tmp/replace-index
 git -C /tmp/replace-index commit --allow-empty -m 'Initialize replacement index'
 git -C /tmp/replace-index push origin "$pages_branch"
@@ -32,17 +33,25 @@ if [[ "$PAGES" == true ]]; then
   upload+=(--packages-with-index --push)
   index+=(--packages-with-index)
 fi
+upload_chart() {
+  git fetch origin "$pages_branch"
+  /tmp/cr upload "${upload[@]}" "$@"
+}
+index_chart() {
+  git fetch origin "$pages_branch"
+  /tmp/cr index "${index[@]}" --push "$@"
+}
 
 # Publish an older version to prove replacement preserves other index entries.
 write_chart 0.0.9 older
 package_chart
-/tmp/cr upload "${upload[@]}" --pre-release
-/tmp/cr index "${index[@]}" --push
+upload_chart --pre-release
+index_chart
 
 write_chart '0.1.0+build.1' original
-package_chart --sign --key e2e@example.invalid --keyring /tmp/secret.gpg --passphrase-file /dev/null
-/tmp/cr upload "${upload[@]}" --pre-release
-/tmp/cr index "${index[@]}" --push
+package_chart --sign --key e2e@example.invalid --keyring /tmp/secret.gpg --passphrase-file /tmp/passphrase.txt
+upload_chart --pre-release
+index_chart
 printf 'keep unrelated asset\n' > /tmp/notes.txt
 gh release upload "$tag" /tmp/notes.txt
 gh release edit "$tag" --notes 'Keep these release notes' --title 'Keep this title'
@@ -101,21 +110,21 @@ verify() {
 
 # Replace with another signed package, then intentionally replace with unsigned.
 write_chart '0.1.0+build.1' replacement-signed
-package_chart --sign --key e2e@example.invalid --keyring /tmp/secret.gpg --passphrase-file /dev/null
-/tmp/cr upload "${upload[@]}" --replace-existing
-/tmp/cr index "${index[@]}" --replace-existing --push
+package_chart --sign --key e2e@example.invalid --keyring /tmp/secret.gpg --passphrase-file /tmp/passphrase.txt
+upload_chart --replace-existing
+index_chart --replace-existing
 verify true
 write_chart '0.1.0+build.1' replacement-unsigned
 package_chart
-/tmp/cr upload "${upload[@]}" --replace-existing
-/tmp/cr index "${index[@]}" --replace-existing --push
+upload_chart --replace-existing
+index_chart --replace-existing
 verify false
 
 # Exact same bytes are idempotent, including Pages Git commits.
 git fetch origin "$pages_branch"
 before=$(git rev-parse "origin/$pages_branch")
-/tmp/cr upload "${upload[@]}" --replace-existing
-/tmp/cr index "${index[@]}" --replace-existing --push
+upload_chart --replace-existing
+index_chart --replace-existing
 git fetch origin "$pages_branch"
 test "$before" = "$(git rev-parse "origin/$pages_branch")"
 verify false
@@ -123,7 +132,7 @@ verify false
 # Replacement opt-in must also create a missing release.
 write_chart 0.2.0 new-release
 package_chart
-/tmp/cr upload "${upload[@]}" --replace-existing --pre-release
-/tmp/cr index "${index[@]}" --replace-existing --push
+upload_chart --replace-existing --pre-release
+index_chart --replace-existing
 gh release view "$chart_name-0.2.0"
 echo 'PASS: replacement assets, provenance, metadata, checksums, older versions and reruns'
