@@ -1,0 +1,128 @@
+name: Chart releaser Pages and checkout authentication
+
+on:
+  push:
+    branches: [codex/chart-releaser-pages-auth-e2e]
+
+permissions: {}
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - checkout: v6.0.0
+            expect_auth: 'false'
+          - checkout: v6.0.1
+            expect_auth: 'true'
+          - checkout: v7.0.1
+            expect_auth: 'true'
+    env:
+      CHECKOUT_VERSION: ${{ matrix.checkout }}
+      EXPECT_AUTH: ${{ matrix.expect_auth }}
+      GH_TOKEN: ${{ github.token }}
+      GIT_TERMINAL_PROMPT: '0'
+    steps:
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        if: matrix.checkout == 'v6.0.0'
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        if: matrix.checkout == 'v6.0.1'
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: matrix.checkout == 'v7.0.1'
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: matrix.expect_auth == 'true'
+        with:
+          repository: cpanato/chart-releaser-action
+          ref: 901f5d7e8f48809732bc1f21771b11b672346c82
+          path: .e2e/action
+          persist-credentials: false
+      - name: Verify ignore rules and authentication in the publishing worktree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'chart-releaser e2e'
+          git config user.email 'chart-releaser-e2e@users.noreply.github.com'
+          git config --get http.https://github.com/.extraheader >/dev/null
+          pages_branch="e2e/pages-auth-$GITHUB_RUN_ID-$CHECKOUT_VERSION"
+          pages_worktree="$RUNNER_TEMP/pages-$CHECKOUT_VERSION"
+          git worktree add --detach "$pages_worktree" HEAD
+          git -C "$pages_worktree" switch --orphan "$pages_branch"
+          test ! -e "$pages_worktree/.gitignore"
+          test ! -e "$pages_worktree/.github"
+          auth_available=false
+          if git -C "$pages_worktree" config --get http.https://github.com/.extraheader >/dev/null; then
+            auth_available=true
+          fi
+          test "$auth_available" = "$EXPECT_AUTH"
+
+          printf '*.tgz\n' > "$pages_worktree/.gitignore"
+          touch "$pages_worktree/probe-1.0.0.tgz"
+          git -C "$pages_worktree" check-ignore -q probe-1.0.0.tgz
+          if git -C "$pages_worktree" add probe-1.0.0.tgz >"$RUNNER_TEMP/ignore-error.log" 2>&1; then
+            echo 'Expected inherited *.tgz rule to block staging' >&2
+            exit 1
+          fi
+          grep -F 'ignored' "$RUNNER_TEMP/ignore-error.log"
+          : > "$pages_worktree/.gitignore"
+          git -C "$pages_worktree" add probe-1.0.0.tgz
+          git -C "$pages_worktree" rm --cached probe-1.0.0.tgz
+          rm "$pages_worktree/probe-1.0.0.tgz" "$pages_worktree/.gitignore"
+          git -C "$pages_worktree" commit --allow-empty -m 'Initialize isolated publishing branch'
+
+          if [[ "$EXPECT_AUTH" == false ]]; then
+            if git -C "$pages_worktree" push origin "$pages_branch" >"$RUNNER_TEMP/auth-error.log" 2>&1; then
+              echo 'Expected checkout v6.0.0 worktree push to fail without credentials' >&2
+              exit 1
+            fi
+            grep -E 'could not read Username|Authentication failed|Invalid username or token' "$RUNNER_TEMP/auth-error.log"
+          else
+            git -C "$pages_worktree" push origin "$pages_branch"
+            git fetch origin "$pages_branch:refs/remotes/origin/$pages_branch"
+            echo "PAGES_BRANCH=$pages_branch" >> "$GITHUB_ENV"
+            echo "CHART_VERSION=0.1.0-e2e.$GITHUB_RUN_ID.$CHECKOUT_VERSION" >> "$GITHUB_ENV"
+            sed -i "s/^version:.*/version: 0.1.0-e2e.$GITHUB_RUN_ID.$CHECKOUT_VERSION/" charts/cr-pages-auth/Chart.yaml
+          fi
+          git worktree remove "$pages_worktree"
+          echo "Checkout $CHECKOUT_VERSION: worktree credentials available=$auth_available; inherited ignore-rule failure reproduced and corrected." >> "$GITHUB_STEP_SUMMARY"
+      - name: Publish chart packages and index using supported checkout
+        if: matrix.expect_auth == 'true'
+        id: release
+        uses: ./.e2e/action
+        with:
+          version: v1.9.0
+          packages_with_index: true
+          pages_branch: ${{ env.PAGES_BRANCH }}
+          mark_as_latest: false
+        env:
+          CR_TOKEN: ${{ github.token }}
+      - name: Verify package, release asset, index digest, and output
+        if: matrix.expect_auth == 'true'
+        env:
+          CHANGED_CHARTS: ${{ steps.release.outputs.changed_charts }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$CHANGED_CHARTS" = charts/cr-pages-auth
+          package="cr-pages-auth-$CHART_VERSION.tgz"
+          gh release download "cr-pages-auth-$CHART_VERSION" --repo "$GITHUB_REPOSITORY" --pattern "$package" --dir "$RUNNER_TEMP/assets"
+          cmp ".cr-release-packages/$package" "$RUNNER_TEMP/assets/$package"
+          git fetch origin "$PAGES_BRANCH:refs/remotes/origin/$PAGES_BRANCH"
+          git show "origin/$PAGES_BRANCH:$package" > "$RUNNER_TEMP/$package"
+          cmp ".cr-release-packages/$package" "$RUNNER_TEMP/$package"
+          digest=$(sha256sum ".cr-release-packages/$package" | cut -d ' ' -f 1)
+          git show "origin/$PAGES_BRANCH:index.yaml" | grep -F "$digest"
+          echo "Checkout $CHECKOUT_VERSION: package, release asset, index digest, and changed_charts checks passed." >> "$GITHUB_STEP_SUMMARY"

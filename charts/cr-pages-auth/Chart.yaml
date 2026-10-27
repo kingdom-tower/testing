@@ -1,0 +1,5 @@
+apiVersion: v2
+name: cr-pages-auth
+description: Chart-releaser publishing branch and checkout authentication fixture
+type: application
+version: 0.0.0
