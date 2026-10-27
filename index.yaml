@@ -1,0 +1,13 @@
+apiVersion: v1
+entries:
+  cr-pages-auth:
+  - apiVersion: v2
+    created: "2026-10-27T14:26:04.734716496Z"
+    description: Chart-releaser publishing branch and checkout authentication fixture
+    digest: aa30b19b067123d750e069ad94e42cddee487bfbb826c2c3f90cc299d92ce58b
+    name: cr-pages-auth
+    type: application
+    urls:
+    - cr-pages-auth-0.1.0-e2e.40521023786.v6.0.1.tgz
+    version: 0.1.0-e2e.40521023786.v6.0.1
+generated: "2026-10-27T14:26:04.734727463Z"
