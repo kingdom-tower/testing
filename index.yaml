@@ -1,0 +1,51 @@
+apiVersion: v1
+entries:
+  output-signed-arm64-40714850079-1-actual-name:
+  - apiVersion: v2
+    created: "2026-10-28T15:20:31.926222449Z"
+    digest: 3aa20af9557ea9953c89d9493f2e8a2aee6fb30ac93592b3af2d7abb6fef9b8c
+    name: output-signed-arm64-40714850079-1-actual-name
+    urls:
+    - https://github.com/kingdom-tower/testing/releases/download/output-signed-arm64-40714850079-1-actual-name-3.0.0/output-signed-arm64-40714850079-1-actual-name-3.0.0.tgz
+    version: 3.0.0
+  output-signed-arm64-40714850079-1-app:
+  - apiVersion: v2
+    created: "2026-10-28T15:20:32.59476782Z"
+    digest: 3a7b1eec9a295e301412350fb13356326a69bf53420d4871c9e3bc3451d5de2d
+    name: output-signed-arm64-40714850079-1-app
+    urls:
+    - https://github.com/kingdom-tower/testing/releases/download/output-signed-arm64-40714850079-1-app-1.0.0/output-signed-arm64-40714850079-1-app-1.0.0.tgz
+    version: 1.0.0
+  output-signed-arm64-40714850079-1-app-0helper:
+  - apiVersion: v2
+    created: "2026-10-28T15:20:32.225729849Z"
+    digest: 27646ca360fa629dd594eec117bc395306badfe38d7a1cc1f589089e3cc83a1f
+    name: output-signed-arm64-40714850079-1-app-0helper
+    urls:
+    - https://github.com/kingdom-tower/testing/releases/download/output-signed-arm64-40714850079-1-app-0helper-2.0.0/output-signed-arm64-40714850079-1-app-0helper-2.0.0.tgz
+    version: 2.0.0
+  output-signed-arm64-40714850079-1-indented:
+  - apiVersion: v2
+    created: "2026-10-28T15:20:32.768614278Z"
+    digest: 48944da9c78eb6a52e7455e7deecb4ca2f1292c48b1b6104da2ff353a4bff491
+    name: output-signed-arm64-40714850079-1-indented
+    urls:
+    - https://github.com/kingdom-tower/testing/releases/download/output-signed-arm64-40714850079-1-indented-1.2.3/output-signed-arm64-40714850079-1-indented-1.2.3.tgz
+    version: 1.2.3
+  output-signed-arm64-40714850079-1-numeric:
+  - apiVersion: v2
+    created: "2026-10-28T15:20:33.088948142Z"
+    digest: ec8e44a8e2d79144a7b7fe0abe639cc45a058fe2e273e25c93435ed2506d2904
+    name: output-signed-arm64-40714850079-1-numeric
+    urls:
+    - https://github.com/kingdom-tower/testing/releases/download/output-signed-arm64-40714850079-1-numeric-1/output-signed-arm64-40714850079-1-numeric-1.tgz
+    version: "1"
+  output-signed-arm64-40714850079-1-quoted:
+  - apiVersion: v2
+    created: "2026-10-28T15:20:33.329957616Z"
+    digest: 05aed2ea2b4d950133decd26b6bc16ba92bf6d267fa77a67ad68a9f2842fc642
+    name: output-signed-arm64-40714850079-1-quoted
+    urls:
+    - https://github.com/kingdom-tower/testing/releases/download/output-signed-arm64-40714850079-1-quoted-1.2.3/output-signed-arm64-40714850079-1-quoted-1.2.3.tgz
+    version: 1.2.3
+generated: "2026-10-28T15:20:33.329971896Z"
