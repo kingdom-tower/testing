@@ -1,0 +1,51 @@
+apiVersion: v1
+entries:
+  output-unsigned-amd64-40714850079-1-actual-name:
+  - apiVersion: v2
+    created: "2026-10-28T15:20:25.295047881Z"
+    digest: 7c0f4e64f7dac1bd6a961301fed24323d10fba4bdbb9bd456577bd3a14c65a64
+    name: output-unsigned-amd64-40714850079-1-actual-name
+    urls:
+    - https://github.com/kingdom-tower/testing/releases/download/output-unsigned-amd64-40714850079-1-actual-name-3.0.0/output-unsigned-amd64-40714850079-1-actual-name-3.0.0.tgz
+    version: 3.0.0
+  output-unsigned-amd64-40714850079-1-app:
+  - apiVersion: v2
+    created: "2026-10-28T15:20:25.709740934Z"
+    digest: d6e74e9bef40064fa18c8c822b4dc48d4a517fdd62fb57e2e74e55dd12ec8cc5
+    name: output-unsigned-amd64-40714850079-1-app
+    urls:
+    - https://github.com/kingdom-tower/testing/releases/download/output-unsigned-amd64-40714850079-1-app-1.0.0/output-unsigned-amd64-40714850079-1-app-1.0.0.tgz
+    version: 1.0.0
+  output-unsigned-amd64-40714850079-1-app-0helper:
+  - apiVersion: v2
+    created: "2026-10-28T15:20:25.480933323Z"
+    digest: 16b8881d0b8d8b51774e5b29e3ea9f8e842daf91635a686ebe74730011383f08
+    name: output-unsigned-amd64-40714850079-1-app-0helper
+    urls:
+    - https://github.com/kingdom-tower/testing/releases/download/output-unsigned-amd64-40714850079-1-app-0helper-2.0.0/output-unsigned-amd64-40714850079-1-app-0helper-2.0.0.tgz
+    version: 2.0.0
+  output-unsigned-amd64-40714850079-1-indented:
+  - apiVersion: v2
+    created: "2026-10-28T15:20:25.911825814Z"
+    digest: 2acbdd4435b46cdd000cf70be63911b53b0ce87c2766ea6cf4abd8ea5b97daca
+    name: output-unsigned-amd64-40714850079-1-indented
+    urls:
+    - https://github.com/kingdom-tower/testing/releases/download/output-unsigned-amd64-40714850079-1-indented-1.2.3/output-unsigned-amd64-40714850079-1-indented-1.2.3.tgz
+    version: 1.2.3
+  output-unsigned-amd64-40714850079-1-numeric:
+  - apiVersion: v2
+    created: "2026-10-28T15:20:26.133822148Z"
+    digest: cdac8dfc92449095c5ad0c8247d6fb527700428003210b084ba0475ec789d7f6
+    name: output-unsigned-amd64-40714850079-1-numeric
+    urls:
+    - https://github.com/kingdom-tower/testing/releases/download/output-unsigned-amd64-40714850079-1-numeric-1/output-unsigned-amd64-40714850079-1-numeric-1.tgz
+    version: "1"
+  output-unsigned-amd64-40714850079-1-quoted:
+  - apiVersion: v2
+    created: "2026-10-28T15:20:26.363480906Z"
+    digest: 7a5f4d5993811103f3dd9ad175cd534803462ecc8d5ff19c2b13fe34f327f8b2
+    name: output-unsigned-amd64-40714850079-1-quoted
+    urls:
+    - https://github.com/kingdom-tower/testing/releases/download/output-unsigned-amd64-40714850079-1-quoted-1.2.3/output-unsigned-amd64-40714850079-1-quoted-1.2.3.tgz
+    version: 1.2.3
+generated: "2026-10-28T15:20:26.363491145Z"
