@@ -1,0 +1,67 @@
+name: Merged chart_version output e2e
+on:
+  push:
+    branches: [codex/chart-releaser-version-output-e2e]
+permissions:
+  contents: write
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - case_id: unsigned-amd64
+            runner: ubuntu-latest
+            signing: 'false'
+          - case_id: signed-arm64
+            runner: ubuntu-24.04-arm
+            signing: 'true'
+    runs-on: ${{ matrix.runner }}
+    env:
+      CASE_ID: ${{ matrix.case_id }}
+      SIGNING: ${{ matrix.signing }}
+      GH_TOKEN: ${{ github.token }}
+      CR_TOKEN: ${{ github.token }}
+      CR_SIGN: ${{ matrix.signing }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Install Helm for independent metadata/signature verification
+        uses: azure/setup-helm@b9e51907a09c216f16ebe8536097933489208112 # v4.3.0
+        with:
+          version: v3.14.3
+      - name: Prepare changed charts and isolated publishing branch
+        run: bash e2e.sh prepare
+      - name: Publish with the merged action
+        id: publish
+        uses: helm/chart-releaser-action@7de7e41d7f0490a33c8512989a5a1cab345324c1 # PR 238 merge
+        with:
+          pages_branch: ${{ env.PAGES_BRANCH }}
+          match_tags: ${{ env.BASELINE_PREFIX }}-*
+          mark_as_latest: false
+      - name: Verify actual outputs, release bytes, index digests and signatures
+        env:
+          ACTUAL_CHANGED: ${{ steps.publish.outputs.changed_charts }}
+          ACTUAL_VERSIONS: ${{ steps.publish.outputs.chart_version }}
+        run: bash e2e.sh verify
+      - name: Prepare a commit without chart changes
+        run: bash e2e.sh settle
+      - name: Rerun with no changed charts
+        id: unchanged
+        uses: helm/chart-releaser-action@7de7e41d7f0490a33c8512989a5a1cab345324c1 # PR 238 merge
+        with:
+          pages_branch: ${{ env.PAGES_BRANCH }}
+          match_tags: ${{ env.BASELINE_PREFIX }}-*
+          mark_as_latest: false
+      - name: Verify empty outputs and unchanged index
+        env:
+          ACTUAL_CHANGED: ${{ steps.unchanged.outputs.changed_charts }}
+          ACTUAL_VERSIONS: ${{ steps.unchanged.outputs.chart_version }}
+        run: |
+          set -euo pipefail
+          test -z "$ACTUAL_CHANGED"
+          test -z "$ACTUAL_VERSIONS"
+          git fetch origin "$PAGES_BRANCH"
+          test "$INDEX_COMMIT" = "$(git rev-parse "origin/$PAGES_BRANCH")"
+          echo 'PASS: no-change rerun has empty outputs and preserves the published index.'
