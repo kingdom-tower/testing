@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
+trap 'printf "E2e failure at line %s\n" "$LINENO" >&2' ERR
 
 chart_dirs=(app-0helper app different-directory indented numeric quoted)
 versions=(2.0.0 1.0.0 3.0.0 1.2.3 1 1.2.3)
@@ -106,7 +107,7 @@ case "$1" in
       digest=$(sha256sum "$download_dir/$tag.tgz" | cut -d ' ' -f 1)
       awk -v key="  $name:" '
         $0 == key {selected=1; next}
-        selected && /^  [^ ]/ {exit}
+        selected && /^  [[:alnum:]_]/ {exit}
         selected {print}
       ' /tmp/chart-output-index.yaml > /tmp/chart-output-entry.yaml
       grep -Fx "    digest: $digest" /tmp/chart-output-entry.yaml
