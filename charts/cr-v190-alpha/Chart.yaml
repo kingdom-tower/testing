@@ -1,5 +1,0 @@
-apiVersion: v2
-name: cr-v190-alpha
-description: Isolated chart-releaser v1.9.0 e2e fixture
-type: application
-version: 0.0.0

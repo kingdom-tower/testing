@@ -3,4 +3,4 @@ kind: ConfigMap
 metadata:
   name: {{ .Release.Name }}-alpha
 data:
-  test: chart-releaser-v1.9.0
+  test: chart-releaser-v1.10.0
