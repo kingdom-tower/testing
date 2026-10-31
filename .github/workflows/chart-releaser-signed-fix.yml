@@ -1,0 +1,134 @@
+name: Chart releaser signed-commit fix e2e
+
+on:
+  push:
+    branches: [codex/chart-releaser-v1.10.0-e2e]
+
+permissions: {}
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: write
+    services:
+      registry:
+        image: registry:2
+        ports: [5000:5000]
+    env:
+      CLI_RELEASE_SHA: eca85ea24084ef93bdf27c5b41d049b00c481f7b
+      CLI_FIX_SHA: 5287c32e091a25164994b1b4ce6d65928684cbce
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: cpanato/chart-releaser-action
+          ref: cd54275d8430ce77684824191a916ea35914e0d4
+          path: .e2e/action
+          persist-credentials: false
+      - name: Verify installation using the new default
+        uses: ./.e2e/action
+        with:
+          install_only: true
+      - name: Verify official release checksum and installed binary
+        shell: bash
+        run: |
+          set -euo pipefail
+          cr version --json | jq -e --arg sha "$CLI_RELEASE_SHA" '.Version == "v1.10.0" and .GitCommit == $sha'
+          release_dir="$RUNNER_TEMP/cr-v1.10.0-release"
+          gh release download v1.10.0 --repo helm/chart-releaser --pattern chart-releaser_1.10.0_linux_amd64.tar.gz --pattern checksums.txt --dir "$release_dir"
+          (
+            cd "$release_dir"
+            grep '  chart-releaser_1.10.0_linux_amd64.tar.gz$' checksums.txt | sha256sum --check -
+          )
+          tar -xzf "$release_dir/chart-releaser_1.10.0_linux_amd64.tar.gz" -C "$release_dir"
+          cmp "$(command -v cr)" "$release_dir/cr"
+      - name: Checkout signed-commit fix
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: cpanato/chart-releaser
+          ref: ${{ env.CLI_FIX_SHA }}
+          path: .e2e/cli
+          persist-credentials: false
+      - name: Setup Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: .e2e/cli/go.mod
+      - name: Build and install fixed CLI for live signing validation
+        working-directory: .e2e/cli
+        shell: bash
+        run: |
+          set -euo pipefail
+          go build -o "$(command -v cr)" -ldflags "-X github.com/helm/chart-releaser/cr/cmd.Version=v1.10.0-fix -X github.com/helm/chart-releaser/cr/cmd.GitCommit=$CLI_FIX_SHA" ./cr
+      - name: Prepare isolated publishing branch and chart versions
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'chart-releaser e2e'
+          git config user.email 'chart-releaser-e2e@users.noreply.github.com'
+          pages_branch="e2e/cr-v1.10.0-$GITHUB_RUN_ID"
+          empty_tree=$(git hash-object -t tree --stdin </dev/null)
+          pages_commit=$(printf 'Initialize isolated e2e index\n' | git commit-tree "$empty_tree")
+          git push origin "$pages_commit:refs/heads/$pages_branch"
+          git fetch origin "$pages_branch:refs/remotes/origin/$pages_branch"
+          echo "PAGES_BRANCH=$pages_branch" >> "$GITHUB_ENV"
+          echo "CHART_VERSION=1.10.0-e2e.$GITHUB_RUN_ID" >> "$GITHUB_ENV"
+          for chart in charts/*; do
+            sed -i "s/^version:.*/version: 1.10.0-e2e.$GITHUB_RUN_ID/" "$chart/Chart.yaml"
+          done
+          head -c 130000 /dev/zero | tr '\0' x > charts/cr-v1100-alpha/RELEASE_NOTES.md
+      - name: Package, release, publish index, and push OCI charts
+        id: release
+        uses: ./.e2e/action
+        with:
+          packages_with_index: true
+          pages_branch: ${{ env.PAGES_BRANCH }}
+          oci_registry_url: oci://localhost:5000/cr-v1.10
+          mark_as_latest: false
+        env:
+          CR_TOKEN: ${{ github.token }}
+          CR_PLAIN_HTTP: 'true'
+          CR_SIGN_COMMITS: 'true'
+          CR_RELEASE_NOTES_FILE: RELEASE_NOTES.md
+          CR_GENERATE_RELEASE_NOTES: 'true'
+      - name: Verify published packages, index digests, OCI tags, and outputs
+        env:
+          CHANGED_CHARTS: ${{ steps.release.outputs.changed_charts }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cr version --json | jq -e --arg sha "$CLI_FIX_SHA" '.Version == "v1.10.0-fix" and .GitCommit == $sha'
+          test "$CHANGED_CHARTS" = 'charts/cr-v1100-alpha,charts/cr-v1100-beta'
+          git fetch origin "$PAGES_BRANCH:refs/remotes/origin/$PAGES_BRANCH"
+          gh api "repos/$GITHUB_REPOSITORY/commits/$PAGES_BRANCH" --jq '.commit.verification' > "$RUNNER_TEMP/index-signature.json"
+          jq -e '.verified == true and .reason == "valid"' "$RUNNER_TEMP/index-signature.json"
+          gh api "repos/$GITHUB_REPOSITORY/releases/tags/cr-v1100-alpha-$CHART_VERSION" | jq -e '.body | length == 125000'
+          git show "origin/$PAGES_BRANCH:index.yaml" > "$RUNNER_TEMP/e2e-index.yaml"
+          for chart in cr-v1100-alpha cr-v1100-beta; do
+            package="$chart-$CHART_VERSION.tgz"
+            gh release download "$chart-$CHART_VERSION" --repo "$GITHUB_REPOSITORY" --pattern "$package" --dir "$RUNNER_TEMP/release-assets"
+            cmp ".cr-release-packages/$package" "$RUNNER_TEMP/release-assets/$package"
+            git show "origin/$PAGES_BRANCH:$package" > "$RUNNER_TEMP/$package"
+            cmp ".cr-release-packages/$package" "$RUNNER_TEMP/$package"
+            digest=$(sha256sum ".cr-release-packages/$package" | cut -d ' ' -f 1)
+            grep -F "$digest" "$RUNNER_TEMP/e2e-index.yaml"
+            grep -F "$package" "$RUNNER_TEMP/e2e-index.yaml"
+            curl -fsS "http://localhost:5000/v2/cr-v1.10/$chart/tags/list" | jq -e --arg version "$CHART_VERSION" '.tags | index($version) != null'
+            curl -fsS -H 'Accept: application/vnd.oci.image.manifest.v1+json' "http://localhost:5000/v2/cr-v1.10/$chart/manifests/$CHART_VERSION" | jq -e '.schemaVersion == 2 and .config.mediaType == "application/vnd.cncf.helm.config.v1+json"'
+          done
+          before=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$PAGES_BRANCH" --jq .object.sha)
+          CR_TOKEN="$GH_TOKEN" cr index --owner "${GITHUB_REPOSITORY%/*}" --git-repo "${GITHUB_REPOSITORY#*/}" --pages-branch "$PAGES_BRANCH" --packages-with-index --push --sign-commits
+          after=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$PAGES_BRANCH" --jq .object.sha)
+          test "$before" = "$after"
+          {
+            echo 'Validated signing with the fix built from source, after checking the official v1.10.0 installation.'
+            echo "CLI fix commit: $CLI_FIX_SHA"
+            echo 'Action source: cd54275d8430ce77684824191a916ea35914e0d4'
+            echo "Chart version: $CHART_VERSION"
+            echo "Index branch: $PAGES_BRANCH"
+            echo 'Passed: release download/checksum, installed binary comparison, install-only, two-chart packaging, release assets, branch packages, index digests, OCI tags/manifests, changed_charts output, GitHub-signed index commit, unchanged-index rerun, oversized release-note truncation.'
+          } >> "$GITHUB_STEP_SUMMARY"
