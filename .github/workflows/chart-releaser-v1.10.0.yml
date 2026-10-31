@@ -76,6 +76,7 @@ jobs:
           CR_PLAIN_HTTP: 'true'
           CR_SIGN_COMMITS: 'true'
           CR_RELEASE_NOTES_FILE: RELEASE_NOTES.md
+          CR_GENERATE_RELEASE_NOTES: 'true'
       - name: Verify published packages, index digests, OCI tags, and outputs
         env:
           CHANGED_CHARTS: ${{ steps.release.outputs.changed_charts }}
