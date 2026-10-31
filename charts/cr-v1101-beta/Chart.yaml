@@ -1,5 +1,5 @@
 apiVersion: v2
-name: cr-v1100-beta
+name: cr-v1101-beta
 description: Second chart for multi-chart publishing validation
 type: application
 version: 0.0.0
