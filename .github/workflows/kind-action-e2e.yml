@@ -1,0 +1,46 @@
+name: kind-action E2E
+
+on:
+  workflow_dispatch:
+    inputs:
+      action_repository:
+        description: Repository containing the kind-action revision to test
+        required: true
+        default: helm/kind-action
+        type: string
+      action_ref:
+        description: Branch, tag, or commit to test
+        required: true
+        default: main
+        type: string
+      kind_version:
+        description: kind release version to install
+        required: true
+        default: v0.31.0
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  kind-action:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout kind-action
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ inputs.action_repository }}
+          ref: ${{ inputs.action_ref }}
+          path: kind-action
+          persist-credentials: false
+
+      - name: Create kind cluster
+        uses: ./kind-action
+        with:
+          version: ${{ inputs.kind_version }}
+          wait: 120s
+
+      - name: Verify cluster
+        run: |
+          kubectl cluster-info
+          kind get clusters | grep -Fx chart-testing
