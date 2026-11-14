@@ -1,0 +1,46 @@
+name: Cherry-pick action real E2E
+
+on:
+  push:
+    branches:
+      - e2e/cherry-pick-runner-20261114
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  cherry-pick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Cherry-pick source pull request
+        id: cherry-pick
+        uses: cpanato/cherry-pick-action@v1.0.2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          pull_number: 41
+          to_branch: e2e/cherry-pick-target-20261114
+
+      - name: Verify the created pull request and contents
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH_NAME: ${{ steps.cherry-pick.outputs.branch_name }}
+          PR_NUMBER: ${{ steps.cherry-pick.outputs.pull_request_number }}
+          PR_URL: ${{ steps.cherry-pick.outputs.pull_request_url }}
+        run: |
+          set -euo pipefail
+          [[ "$BRANCH_NAME" =~ ^cherry-pick-41-[0-9]+-[a-f0-9]{8}$ ]]
+          [[ "$PR_NUMBER" =~ ^[0-9]+$ ]]
+          [[ "$PR_URL" == "https://github.com/$GITHUB_REPOSITORY/pull/$PR_NUMBER" ]]
+          gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" \
+            --json headRefName,baseRefName,url,commits \
+            --jq '[.headRefName, .baseRefName, .url, (.commits | length | tostring)] | @tsv' > /tmp/actual-pr
+          printf '%s\t%s\t%s\t2\n' "$BRANCH_NAME" 'e2e/cherry-pick-target-20261114' "$PR_URL" > /tmp/expected-pr
+          diff -u /tmp/expected-pr /tmp/actual-pr
+          gh api "repos/$GITHUB_REPOSITORY/contents/cherry-pick-e2e-20261114.txt?ref=$BRANCH_NAME" \
+            --jq .content | base64 --decode > /tmp/actual-fixture
+          printf 'First cherry-pick test commit.\nSecond cherry-pick test commit.\n' > /tmp/expected-fixture
+          diff -u /tmp/expected-fixture /tmp/actual-fixture
+          [[ "$(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/heads/cherry-pick-$BRANCH_NAME-" --jq length)" == 0 ]]
+          echo "Verified $PR_URL"
